@@ -8,6 +8,12 @@ namespace Api.Filters
 {
     public class FluentValidationAsyncFilter : IAsyncActionFilter
     {
+        /// <summary>
+        /// Executa validações FluentValidation para os argumentos da ação antes da execução.
+        /// </summary>
+        /// <remarks>
+        /// Injeta valores da rota nos DTOs e suporta múltiplos validators por tipo.
+        /// </remarks>
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
             var ct = context.HttpContext.RequestAborted;
@@ -17,7 +23,7 @@ namespace Api.Filters
             {
                 if (argValue is null) continue;
 
-                // ✅ injeta parâmetros de rota (id, empresaId, etc.) no DTO ANTES de validar
+                // injeta parâmetros de rota (id, empresaId, etc.) no DTO antes de validar
                 InjectRouteValuesIntoDto(context, argValue);
 
                 var argType = argValue.GetType();
@@ -48,6 +54,10 @@ namespace Api.Filters
 
             await next();
         }
+        /// <summary>
+        /// Copia valores da rota para propriedades do DTO quando existir correspondência.
+        /// </summary>
+        /// <remarks>Realiza correspondência case-insensitive e fallback para "id" -> "Id".</remarks>
         private static void InjectRouteValuesIntoDto(ActionExecutingContext context, object dto)
         {
             var routeValues = context.RouteData.Values;
@@ -55,13 +65,13 @@ namespace Api.Filters
 
             var dtoType = dto.GetType();
 
-            // pega props setáveis
+            // obtém propriedades públicas setáveis do DTO
             var props = dtoType
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanWrite)
                 .ToList();
 
-            // índice case-insensitive
+            // índice de propriedades com comparação case-insensitive
             var propByName = props.ToDictionary(p => p.Name, StringComparer.OrdinalIgnoreCase);
 
             foreach (var kvp in routeValues)
@@ -86,8 +96,7 @@ namespace Api.Filters
                         continue;
                     }
 
-                    // fallback: se não tem "Id", tenta alguma propriedade que termine com "Id"
-                    // (ex.: CadeiraId, EmpresaId etc.)
+                    // fallback: se não tem "Id", tenta alguma propriedade que termine com "Id" (ex.: CadeiraId)
                     var anyIdProp = props.FirstOrDefault(p =>
                         p.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
                         (Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType) == typeof(int));
@@ -98,6 +107,9 @@ namespace Api.Filters
             }
         }
 
+        /// <summary>
+        /// Tenta converter a string da rota para o tipo da propriedade e atribuir ao DTO.
+        /// </summary>
         private static bool TrySet(PropertyInfo prop, object target, string raw)
         {
             var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
@@ -112,11 +124,15 @@ namespace Api.Filters
             }
             catch
             {
-                // se não conseguir converter, ignora (validator pode acusar)
+                // se não conseguir converter, ignora - o validador poderá apontar o problema
                 return false;
             }
         }
 
+        /// <summary>
+        /// Converte a string para o tipo alvo suportado (int, bool, Guid, DateTime, enum, etc.).
+        /// </summary>
+        /// <returns>Objeto convertido ou null se não suportado.</returns>
         private static object? ConvertTo(Type type, string raw)
         {
             if (type == typeof(string)) return raw;

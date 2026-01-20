@@ -11,10 +11,17 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
     private readonly IRepositorioCadeira _repositorioCadeira = repositorioCadeira;
     private readonly IRepositorioAlocacao _repositorioAlocacao = repositorioAlocacao;
  
+    /// <summary>
+    /// Gera alocações automaticamente no intervalo informado, distribuindo de forma round-robin entre cadeiras.
+    /// </summary>
+    /// <param name="solicitacao">DTO com data/hora de início e fim.</param>
+    /// <param name="cancellationToken">Token que permite cancelar a operação.</param>
+    /// <returns>Lista de DTOs de alocação criadas e persistidas.</returns>
     public async Task<List<AlocacaoRespostaDto>> AlocarAutomaticamenteAsync(
         AlocacaoSolicitacaoDto solicitacao,
         CancellationToken cancellationToken)
     {
+        // valida intervalo: fim deve ser posterior ao início
         if (solicitacao.DataHoraFim <= solicitacao.DataHoraInicio)
             return [];
 
@@ -22,6 +29,7 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
             .OrderBy(c => c.Numero)
             .ToList();
 
+        // se não há cadeiras cadastradas, retorna lista vazia
         if (cadeiras.Count == 0)
             return [];
 
@@ -30,6 +38,7 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
 
         var indexCadeira = 0;
 
+        // divide o intervalo em slots de 1 hora (constante Slot) e aloca em round-robin
         for (var inicio = solicitacao.DataHoraInicio; inicio < solicitacao.DataHoraFim; inicio = inicio.Add(Slot))
         {
             var fim = inicio.Add(Slot);
@@ -56,8 +65,10 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
             });
         }
 
+        // persiste em lote e recupera registros com relacionamentos carregados
         var persistidas = await _repositorioAlocacao.AdicionarEmLoteAsync(alocacoes, cancellationToken);
 
+        // atualiza os ids e datas a partir das entidades persistidas
         for (var i = 0; i < respostas.Count && i < persistidas.Count; i++)
         {
             respostas[i].Id = persistidas[i].Id;

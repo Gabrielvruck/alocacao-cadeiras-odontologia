@@ -15,6 +15,10 @@ public class ErrorHandlingMiddleware
         _logger = logger;
     }
 
+    /// <summary>
+    /// Intercepta exceções não tratadas e converte para respostas HTTP padronizadas.
+    /// </summary>
+    /// <param name="context">Contexto HTTP atual.</param>
     public async Task Invoke(HttpContext context)
     {
         var traceId = context.TraceIdentifier;
@@ -37,6 +41,7 @@ public class ErrorHandlingMiddleware
                 validationErrors = errors
             };
 
+            // log de aviso para falhas de validação esperadas
             _logger.LogWarning(ex, "Validation failed: {TraceId}", traceId);
             await context.Response.WriteAsync(JsonSerializer.Serialize(result));
         }
@@ -51,6 +56,7 @@ public class ErrorHandlingMiddleware
                 error = new { code = "RESOURCE_NOT_FOUND", message = ex.Message, details = (string?)null, traceId, action = "Verifique o id informado." }
             };
 
+            // recurso não encontrado -> 404
             _logger.LogWarning(ex, "Not found: {TraceId}", traceId);
             await context.Response.WriteAsync(JsonSerializer.Serialize(result));
         }
@@ -65,6 +71,7 @@ public class ErrorHandlingMiddleware
                 error = new { code = "BUSINESS_CONFLICT", message = ex.Message, details = (string?)null, traceId, action = "Verifique as regras de negócio." }
             };
 
+            // conflito de regra de negócio -> 409
             _logger.LogWarning(ex, "Business conflict: {TraceId}", traceId);
             await context.Response.WriteAsync(JsonSerializer.Serialize(result));
         }
@@ -79,6 +86,7 @@ public class ErrorHandlingMiddleware
                 error = new { code = "INTERNAL_SERVER_ERROR", message = "Ocorreu um erro interno.", details = (string?)null, traceId, action = "Contate o suporte com o traceId." }
             };
 
+            // erro inesperado -> 500
             _logger.LogError(ex, "Unhandled exception: {TraceId}", traceId);
             await context.Response.WriteAsync(JsonSerializer.Serialize(result));
         }
