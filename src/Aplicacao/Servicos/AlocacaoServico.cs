@@ -19,17 +19,23 @@ public class AlocacaoServico
         AlocacaoSolicitacaoDto solicitacao,
         CancellationToken cancellationToken)
     {
-        var cadeiras = await _repositorioCadeira.ListarAsync(cancellationToken);
+        var cadeiras = (await _repositorioCadeira.ListarAsync(cancellationToken))
+            .OrderBy(c => c.Numero)
+            .ToList();
 
         if (cadeiras.Count == 0)
         {
-            return new List<AlocacaoRespostaDto>();
+            return [];
         }
+
+        // DEBUG: show ordered chairs
+        System.Console.WriteLine("[DEBUG] cadeiras order: " + string.Join(",", cadeiras.Select(c => c.Numero)));
 
         var duracaoTotal = solicitacao.DataHoraFim - solicitacao.DataHoraInicio;
         var totalHoras = (int)Math.Ceiling(duracaoTotal.TotalHours);
         var intervalo = TimeSpan.FromHours(1);
         var alocacoes = new List<Alocacao>();
+        var respostasParciais = new List<AlocacaoRespostaDto>();
 
         for (var indice = 0; indice < totalHoras; indice++)
         {
@@ -48,17 +54,37 @@ public class AlocacaoServico
                 DataHoraInicio = inicio,
                 DataHoraFim = fim
             });
+
+            respostasParciais.Add(new AlocacaoRespostaDto
+            {
+                Id = 0,
+                CadeiraId = cadeiraSelecionada.Id,
+                NumeroCadeira = cadeiraSelecionada.Numero,
+                DataHoraInicio = inicio,
+                DataHoraFim = fim
+            });
         }
 
         var persistidas = await _repositorioAlocacao.AdicionarEmLoteAsync(alocacoes, cancellationToken);
 
-        return persistidas.Select(alocacao => new AlocacaoRespostaDto
+        // Assign generated Ids and dates from persisted entities back to the partial responses (preserve original order)
+        for (int i = 0; i < persistidas.Count && i < respostasParciais.Count; i++)
         {
-            Id = alocacao.Id,
-            CadeiraId = alocacao.CadeiraId,
-            NumeroCadeira = alocacao.Cadeira?.Numero ?? cadeiras.First(c => c.Id == alocacao.CadeiraId).Numero,
-            DataHoraInicio = alocacao.DataHoraInicio,
-            DataHoraFim = alocacao.DataHoraFim
-        }).ToList();
+            respostasParciais[i].Id = persistidas[i].Id;
+            respostasParciais[i].DataHoraInicio = persistidas[i].DataHoraInicio;
+            respostasParciais[i].DataHoraFim = persistidas[i].DataHoraFim;
+        }
+
+        var resultadoFinal = respostasParciais.OrderBy(r => r.DataHoraInicio).ToList();
+
+        // Debug output for test investigation: write sequence of chair numbers to a temp file
+        try
+        {
+            var seq = string.Join(",", resultadoFinal.Select(r => r.NumeroCadeira));
+            System.IO.File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "alloc_sequence.txt"), seq);
+        }
+        catch { }
+
+        return resultadoFinal;
     }
 }

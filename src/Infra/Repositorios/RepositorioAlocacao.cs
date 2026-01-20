@@ -21,9 +21,13 @@ public class RepositorioAlocacao : IRepositorioAlocacao
 
         var ids = alocacoes.Select(alocacao => alocacao.Id).ToList();
 
-        return await _contexto.Alocacoes
+        var carregadas = await _contexto.Alocacoes
             .Include(alocacao => alocacao.Cadeira)
             .Where(alocacao => ids.Contains(alocacao.Id))
             .ToListAsync(cancellationToken);
+
+        // Preserve the original order of the input list
+        var mapa = carregadas.ToDictionary(a => a.Id);
+        return [.. alocacoes.Select(a => mapa[a.Id])];
     }
 }

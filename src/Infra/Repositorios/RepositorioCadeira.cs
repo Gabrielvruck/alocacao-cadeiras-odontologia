@@ -25,7 +25,15 @@ public class RepositorioCadeira : IRepositorioCadeira
     {
         return await _contexto.Cadeiras
             .AsNoTracking()
+            .Include(c => c.Alocacoes)
             .FirstOrDefaultAsync(cadeira => cadeira.Id == id, cancellationToken);
+    }
+
+    public async Task<Cadeira?> ObterPorNumeroAsync(int numero, CancellationToken cancellationToken)
+    {
+        return await _contexto.Cadeiras
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Numero == numero, cancellationToken);
     }
 
     public async Task<List<Cadeira>> ListarAsync(CancellationToken cancellationToken)
