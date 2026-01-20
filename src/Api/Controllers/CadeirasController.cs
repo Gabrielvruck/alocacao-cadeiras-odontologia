@@ -20,16 +20,10 @@ public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
     /// <param name="pageNumber">Número da página (opcional).</param>
     /// <param name="pageSize">Tamanho da página (opcional).</param>
     /// <param name="cancellationToken">Token para cancelar a operação.</param>
-    public async Task<ActionResult> ListarAsync([FromQuery] int? pageNumber, [FromQuery] int? pageSize, CancellationToken cancellationToken)
+    public async Task<ActionResult<PaginacaoRespostaDto<CadeiraRespostaDto>>> ListarAsync([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        if (pageNumber.HasValue || pageSize.HasValue)
-        {
-            var pag = await _cadeiraServico.ListarPaginadoAsync(pageNumber ?? 1, pageSize ?? 10, cancellationToken);
-            return Ok(pag);
-        }
-
-        var resultado = await _cadeiraServico.ListarAsync(cancellationToken);
-        return Ok(resultado);
+        var pag = await _cadeiraServico.ListarPaginadoAsync(pageNumber, pageSize, cancellationToken);
+        return Ok(pag);
     }
 
     [HttpGet("{id:int}", Name = "Cadeiras_ObterPorId")]
