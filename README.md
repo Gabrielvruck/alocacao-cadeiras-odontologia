@@ -15,6 +15,15 @@ API em .NET 8 para gerenciar cadeiras de dentista e alocações. Permite criar, li
 - MySQL (local ou remoto)
 - `dotnet-ef` (ferramenta CLI) para gerar/aplicar migrations
 
+## Desenvolvimento (rápido)
+
+Instruções completas para configurar o MySQL (local, container via Docker Desktop) e aplicar as migrations já existentes estão em `docs/DEVELOPMENT.md`.
+
+Resumo rápido:
+- Defina a connection string de desenvolvimento (variável de ambiente ou `src/Api/appsettings.Development.json`).
+- Execute `dotnet restore` e `dotnet build`.
+- Aplique as migrations: `dotnet ef database update --project src/Infra --startup-project src/Api`.
+
 ## Como configurar a conexão com o banco (MySQL)
 1. Edite a connection string no `appsettings.json` ou `appsettings.Development.json` do projeto `src/Api`.
    Exemplo:

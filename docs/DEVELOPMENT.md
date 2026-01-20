@@ -49,37 +49,48 @@ USE alocacao_cadeiras;
 SHOW TABLES; -- deve listar `cadeiras` e `alocacoes`
 ```
 
-Opção B — MySQL via Docker Compose (desenvolvimento)
+Opção B — MySQL via Docker Desktop (container)
 
-1. (Opcional) Crie um arquivo `docker-compose.yml` com o serviço MySQL ou use um comando `docker run`.
+Se você usa Docker Desktop, pode criar um container MySQL rapidamente sem usar Docker Compose. Abaixo há instruções para executar via linha de comando (`docker run`) e notas sobre o uso via GUI do Docker Desktop.
 
-Exemplo mínimo de `docker-compose.yml` (para referência; não é obrigatório criar o arquivo no repo):
-
-```yaml
-version: '3.8'
-services:
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: senha
-      MYSQL_DATABASE: alocacao_cadeiras
-    ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-```
-
-2. Inicie o MySQL via Docker Compose:
+1. Criar e executar um container MySQL usando `docker run`:
 
 ```bash
-docker-compose up -d
+docker run -d \
+  --name alocacao-mysql \
+  -e MYSQL_ROOT_PASSWORD=senha \
+  -e MYSQL_DATABASE=alocacao_cadeiras \
+  -p 3306:3306 \
+  mysql:8.0
 ```
 
-3. Use a connection string apontando para `localhost:3306` (ex.: `server=localhost;port=3306;database=alocacao_cadeiras;user=root;password=senha`) e aplique as migrations:
+2. Verifique se o container subiu corretamente:
 
+```bash
+docker ps --filter "name=alocacao-mysql"
+docker logs alocacao-mysql --tail 50
+```
+
+No Docker Desktop (GUI):
+- Abra o Docker Desktop e espere o serviço iniciar.
+- Na aba "Containers / Apps" verifique se o container `alocacao-mysql` está em execução (running).
+- Você pode inspecionar logs, abrir um terminal (Exec) e ver as portas mapeadas pela interface.
+
+3. Aguarde o MySQL ficar pronto. Para checar disponibilidade execute:
+
+```bash
+docker exec -it alocacao-mysql mysql -uroot -psenha -e "SHOW DATABASES;"
+```
+
+4. Configure a connection string apontando para `localhost:3306` e aplique as migrations:
+
+PowerShell (Windows):
+```powershell
+$env:ConnectionStrings__BancoDados = "server=localhost;port=3306;database=alocacao_cadeiras;user=root;password=senha"
+dotnet ef database update --project src/Infra --startup-project src/Api
+```
+
+Bash (macOS/Linux):
 ```bash
 export ConnectionStrings__BancoDados="server=localhost;port=3306;database=alocacao_cadeiras;user=root;password=senha"
 dotnet ef database update --project src/Infra --startup-project src/Api
