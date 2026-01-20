@@ -39,6 +39,21 @@ public class RepositorioCadeira(AplicacaoDbContext contexto) : IRepositorioCadei
             .ToListAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Recupera alocações para um conjunto de cadeiras dentro de um período.
+    /// Usado para evitar consultas N+1 ao verificar conflitos de horário.
+    /// </summary>
+    public async Task<List<Alocacao>> ObterAlocacoesPorCadeirasNoPeriodoAsync(IEnumerable<int> cadeiraIds, DateTime inicio, DateTime fim, CancellationToken cancellationToken)
+    {
+        var ids = cadeiraIds.ToList();
+        if (ids.Count == 0) return new List<Alocacao>();
+
+        return await _contexto.Alocacoes
+            .AsNoTracking()
+            .Where(a => ids.Contains(a.CadeiraId) && a.DataHoraInicio < fim && a.DataHoraFim > inicio)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task AtualizarAsync(Cadeira cadeira, CancellationToken cancellationToken)
     {
         _contexto.Cadeiras.Update(cadeira);

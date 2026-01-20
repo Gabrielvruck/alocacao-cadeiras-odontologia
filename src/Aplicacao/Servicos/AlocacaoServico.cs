@@ -1,6 +1,7 @@
 using Aplicacao.Interfaces;
 using Aplicacao.Modelos;
 using Dominio.Entidades;
+using System.Linq;
 
 namespace Aplicacao.Servicos;
 
@@ -45,24 +46,57 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
             if (fim > solicitacao.DataHoraFim)
                 fim = solicitacao.DataHoraFim;
 
-            var cadeira = cadeiras[indexCadeira];
-            indexCadeira = (indexCadeira + 1) % cadeiras.Count;
+            // otimização: carrega de uma única vez as alocações no período para todas as cadeiras
+            var cadeiraIds = cadeiras.Select(c => c.Id).ToList();
+            var alocsNoPeriodo = await _repositorioCadeira.ObterAlocacoesPorCadeirasNoPeriodoAsync(cadeiraIds, inicio, fim, cancellationToken);
 
-            alocacoes.Add(new Alocacao
-            {
-                CadeiraId = cadeira.Id,
-                DataHoraInicio = inicio,
-                DataHoraFim = fim
-            });
+            // tenta encontrar uma cadeira sem conflito para este slot, começando em indexCadeira
+            Alocacao? criada = null;
+            AlocacaoRespostaDto? resposta = null;
 
-            respostas.Add(new AlocacaoRespostaDto
+            for (var attempt = 0; attempt < cadeiras.Count; attempt++)
             {
-                Id = 0,
-                CadeiraId = cadeira.Id,
-                NumeroCadeira = cadeira.Numero,
-                DataHoraInicio = inicio,
-                DataHoraFim = fim
-            });
+                var candIndex = (indexCadeira + attempt) % cadeiras.Count;
+                var cadeiraCand = cadeiras[candIndex];
+
+                var existeConflito = alocsNoPeriodo.Any(a => a.CadeiraId == cadeiraCand.Id);
+
+                if (existeConflito)
+                    continue;
+
+                // sem conflito: cria alocação para este slot
+                criada = new Alocacao
+                {
+                    CadeiraId = cadeiraCand.Id,
+                    DataHoraInicio = inicio,
+                    DataHoraFim = fim
+                };
+
+                resposta = new AlocacaoRespostaDto
+                {
+                    Id = 0,
+                    CadeiraId = cadeiraCand.Id,
+                    NumeroCadeira = cadeiraCand.Numero,
+                    DataHoraInicio = inicio,
+                    DataHoraFim = fim
+                };
+
+                // avança o ponteiro principal para preservar round-robin
+                indexCadeira = (candIndex + 1) % cadeiras.Count;
+                break;
+            }
+
+            // se encontrou cadeira disponível, adiciona à lista de persistência
+            if (criada is not null && resposta is not null)
+            {
+                alocacoes.Add(criada);
+                respostas.Add(resposta);
+            }
+            else
+            {
+                // se nenhuma cadeira disponível neste slot, lançar exceção para indicar indisponibilidade
+                throw new InvalidOperationException($"Nenhuma cadeira disponível para o intervalo {inicio:o} - {fim:o}.");
+            }
         }
 
         // persiste em lote e recupera registros com relacionamentos carregados
