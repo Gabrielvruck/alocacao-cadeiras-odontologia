@@ -6,54 +6,51 @@ namespace Aplicacao.Servicos;
 
 public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositorioAlocacao repositorioAlocacao)
 {
+    private static readonly TimeSpan Slot = TimeSpan.FromHours(1);
+
     private readonly IRepositorioCadeira _repositorioCadeira = repositorioCadeira;
     private readonly IRepositorioAlocacao _repositorioAlocacao = repositorioAlocacao;
-
+ 
     public async Task<List<AlocacaoRespostaDto>> AlocarAutomaticamenteAsync(
         AlocacaoSolicitacaoDto solicitacao,
         CancellationToken cancellationToken)
     {
+        if (solicitacao.DataHoraFim <= solicitacao.DataHoraInicio)
+            return [];
+
         var cadeiras = (await _repositorioCadeira.ListarAsync(cancellationToken))
             .OrderBy(c => c.Numero)
             .ToList();
 
         if (cadeiras.Count == 0)
-        {
             return [];
-        }
 
-        // DEBUG: show ordered chairs
-        System.Console.WriteLine("[DEBUG] cadeiras order: " + string.Join(",", cadeiras.Select(c => c.Numero)));
-
-        var duracaoTotal = solicitacao.DataHoraFim - solicitacao.DataHoraInicio;
-        var totalHoras = (int)Math.Ceiling(duracaoTotal.TotalHours);
-        var intervalo = TimeSpan.FromHours(1);
         var alocacoes = new List<Alocacao>();
-        var respostasParciais = new List<AlocacaoRespostaDto>();
+        var respostas = new List<AlocacaoRespostaDto>();
 
-        for (var indice = 0; indice < totalHoras; indice++)
+        var indexCadeira = 0;
+
+        for (var inicio = solicitacao.DataHoraInicio; inicio < solicitacao.DataHoraFim; inicio = inicio.Add(Slot))
         {
-            var cadeiraSelecionada = cadeiras[indice % cadeiras.Count];
-            var inicio = solicitacao.DataHoraInicio.AddHours(indice);
-            var fim = inicio.Add(intervalo);
-
+            var fim = inicio.Add(Slot);
             if (fim > solicitacao.DataHoraFim)
-            {
                 fim = solicitacao.DataHoraFim;
-            }
+
+            var cadeira = cadeiras[indexCadeira];
+            indexCadeira = (indexCadeira + 1) % cadeiras.Count;
 
             alocacoes.Add(new Alocacao
             {
-                CadeiraId = cadeiraSelecionada.Id,
+                CadeiraId = cadeira.Id,
                 DataHoraInicio = inicio,
                 DataHoraFim = fim
             });
 
-            respostasParciais.Add(new AlocacaoRespostaDto
+            respostas.Add(new AlocacaoRespostaDto
             {
                 Id = 0,
-                CadeiraId = cadeiraSelecionada.Id,
-                NumeroCadeira = cadeiraSelecionada.Numero,
+                CadeiraId = cadeira.Id,
+                NumeroCadeira = cadeira.Numero,
                 DataHoraInicio = inicio,
                 DataHoraFim = fim
             });
@@ -61,24 +58,13 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
 
         var persistidas = await _repositorioAlocacao.AdicionarEmLoteAsync(alocacoes, cancellationToken);
 
-        // Assign generated Ids and dates from persisted entities back to the partial responses (preserve original order)
-        for (int i = 0; i < persistidas.Count && i < respostasParciais.Count; i++)
+        for (var i = 0; i < respostas.Count && i < persistidas.Count; i++)
         {
-            respostasParciais[i].Id = persistidas[i].Id;
-            respostasParciais[i].DataHoraInicio = persistidas[i].DataHoraInicio;
-            respostasParciais[i].DataHoraFim = persistidas[i].DataHoraFim;
+            respostas[i].Id = persistidas[i].Id;
+            respostas[i].DataHoraInicio = persistidas[i].DataHoraInicio;
+            respostas[i].DataHoraFim = persistidas[i].DataHoraFim;
         }
 
-        var resultadoFinal = respostasParciais.OrderBy(r => r.DataHoraInicio).ToList();
-
-        // Debug output for test investigation: write sequence of chair numbers to a temp file
-        try
-        {
-            var seq = string.Join(",", resultadoFinal.Select(r => r.NumeroCadeira));
-            System.IO.File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "alloc_sequence.txt"), seq);
-        }
-        catch { }
-
-        return resultadoFinal;
+        return respostas;
     }
 }

@@ -55,7 +55,7 @@ public class CadeiraServico(IRepositorioCadeira repositorioCadeira)
         };
     }
 
-    public async Task<bool> AtualizarAsync(int id, CadeiraCriacaoDto dto, CancellationToken cancellationToken)
+    public async Task<bool> AtualizarAsync(int id, CadeiraAtualizacaoDto dto, CancellationToken cancellationToken)
     {
         var cadeira = await _repositorioCadeira.ObterPorIdAsync(id, cancellationToken);
 

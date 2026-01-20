@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("api/alocacoes")]
+[Route("api/[controller]")]
 public class AlocacoesController(AlocacaoServico alocacaoServico) : ControllerBase
 {
     private readonly AlocacaoServico _alocacaoServico = alocacaoServico;

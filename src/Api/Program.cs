@@ -1,19 +1,19 @@
+using Api.Filters;
 using Aplicacao.Servicos;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Infra.Contexto;
 using Infra.Repositorios;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<FluentValidationAsyncFilter>();
+});
 
-builder.Services.AddControllers();
-
-// Add global exception handling middleware DI
-//builder.Services.AddSingleton<Api.Middleware.ErrorHandlingMiddleware>();
-
-builder.Services.AddFluentValidationAutoValidation();
+// registra o filtro no DI
+builder.Services.AddScoped<FluentValidationAsyncFilter>();
 builder.Services.AddValidatorsFromAssemblyContaining<Aplicacao.Validacoes.CadeiraCriacaoDtoValidador>();
 
 builder.Services.AddScoped<CadeiraServico>();

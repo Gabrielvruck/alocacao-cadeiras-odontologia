@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("api/cadeiras")]
+[Route("api/[controller]")]
 public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
 {
     private readonly CadeiraServico _cadeiraServico = cadeiraServico;
@@ -17,7 +17,7 @@ public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
         return Ok(resultado);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id:int}", Name = "Cadeiras_ObterPorId")]
     public async Task<ActionResult<CadeiraRespostaDto>> ObterPorIdAsync(int id, CancellationToken cancellationToken)
     {
         var resultado = await _cadeiraServico.ObterPorIdAsync(id, cancellationToken);
@@ -36,13 +36,13 @@ public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
         CancellationToken cancellationToken)
     {
         var resultado = await _cadeiraServico.CriarAsync(dto, cancellationToken);
-        return CreatedAtAction(nameof(ObterPorIdAsync), new { id = resultado.Id }, resultado);
+        return CreatedAtRoute("Cadeiras_ObterPorId", new { id = resultado.Id }, resultado);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> AtualizarAsync(
         int id,
-        [FromBody] CadeiraCriacaoDto dto,
+        [FromBody] CadeiraAtualizacaoDto dto,
         CancellationToken cancellationToken)
     {
         var atualizado = await _cadeiraServico.AtualizarAsync(id, dto, cancellationToken);
