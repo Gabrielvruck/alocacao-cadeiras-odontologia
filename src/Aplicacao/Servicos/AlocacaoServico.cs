@@ -4,16 +4,10 @@ using Dominio.Entidades;
 
 namespace Aplicacao.Servicos;
 
-public class AlocacaoServico
+public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositorioAlocacao repositorioAlocacao)
 {
-    private readonly IRepositorioCadeira _repositorioCadeira;
-    private readonly IRepositorioAlocacao _repositorioAlocacao;
-
-    public AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositorioAlocacao repositorioAlocacao)
-    {
-        _repositorioCadeira = repositorioCadeira;
-        _repositorioAlocacao = repositorioAlocacao;
-    }
+    private readonly IRepositorioCadeira _repositorioCadeira = repositorioCadeira;
+    private readonly IRepositorioAlocacao _repositorioAlocacao = repositorioAlocacao;
 
     public async Task<List<AlocacaoRespostaDto>> AlocarAutomaticamenteAsync(
         AlocacaoSolicitacaoDto solicitacao,

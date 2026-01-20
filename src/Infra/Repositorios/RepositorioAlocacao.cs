@@ -5,14 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositorios;
 
-public class RepositorioAlocacao : IRepositorioAlocacao
+public class RepositorioAlocacao(AplicacaoDbContext contexto) : IRepositorioAlocacao
 {
-    private readonly AplicacaoDbContext _contexto;
-
-    public RepositorioAlocacao(AplicacaoDbContext contexto)
-    {
-        _contexto = contexto;
-    }
+    private readonly AplicacaoDbContext _contexto = contexto;
 
     public async Task<List<Alocacao>> AdicionarEmLoteAsync(List<Alocacao> alocacoes, CancellationToken cancellationToken)
     {

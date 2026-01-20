@@ -6,14 +6,9 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/alocacoes")]
-public class AlocacoesController : ControllerBase
+public class AlocacoesController(AlocacaoServico alocacaoServico) : ControllerBase
 {
-    private readonly AlocacaoServico _alocacaoServico;
-
-    public AlocacoesController(AlocacaoServico alocacaoServico)
-    {
-        _alocacaoServico = alocacaoServico;
-    }
+    private readonly AlocacaoServico _alocacaoServico = alocacaoServico;
 
     [HttpPost("automatica")]
     public async Task<ActionResult<List<AlocacaoRespostaDto>>> AlocarAutomaticamenteAsync(

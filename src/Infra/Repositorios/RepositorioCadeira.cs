@@ -5,14 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Infra.Repositorios;
 
-public class RepositorioCadeira : IRepositorioCadeira
+public class RepositorioCadeira(AplicacaoDbContext contexto) : IRepositorioCadeira
 {
-    private readonly AplicacaoDbContext _contexto;
-
-    public RepositorioCadeira(AplicacaoDbContext contexto)
-    {
-        _contexto = contexto;
-    }
+    private readonly AplicacaoDbContext _contexto = contexto;
 
     public async Task<Cadeira> AdicionarAsync(Cadeira cadeira, CancellationToken cancellationToken)
     {

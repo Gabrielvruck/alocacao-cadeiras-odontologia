@@ -73,22 +73,4 @@ public class AlocacaoServicoTests
         repoCadeira.VerifyAll();
         repoAlocacao.VerifyAll();
     }
-
-    [Fact]
-    public async Task AlocarAutomaticamenteAsync_QuandoUltimoIntervaloForParcial_DeveCortarNoFim()
-    {
-        // ... mesma configuração de mocks ...
-
-        var solicitacao = new AlocacaoSolicitacaoDto
-        {
-            DataHoraInicio = new DateTime(2024, 1, 1, 8, 0, 0),
-            DataHoraFim = new DateTime(2024, 1, 1, 10, 30, 0)
-        };
-
-        var resultado = await servico.AlocarAutomaticamenteAsync(solicitacao, CancellationToken.None);
-
-        resultado.Should().HaveCount(3);
-        resultado.Last().DataHoraFim.Should().Be(new DateTime(2024, 1, 1, 10, 30, 0));
-    }
-
 }

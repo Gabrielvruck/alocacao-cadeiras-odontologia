@@ -4,14 +4,9 @@ using Dominio.Entidades;
 
 namespace Aplicacao.Servicos;
 
-public class CadeiraServico
+public class CadeiraServico(IRepositorioCadeira repositorioCadeira)
 {
-    private readonly IRepositorioCadeira _repositorioCadeira;
-
-    public CadeiraServico(IRepositorioCadeira repositorioCadeira)
-    {
-        _repositorioCadeira = repositorioCadeira;
-    }
+    private readonly IRepositorioCadeira _repositorioCadeira = repositorioCadeira;
 
     public async Task<CadeiraRespostaDto> CriarAsync(CadeiraCriacaoDto dto, CancellationToken cancellationToken)
     {

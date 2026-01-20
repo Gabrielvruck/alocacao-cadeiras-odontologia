@@ -6,14 +6,9 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/cadeiras")]
-public class CadeirasController : ControllerBase
+public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
 {
-    private readonly CadeiraServico _cadeiraServico;
-
-    public CadeirasController(CadeiraServico cadeiraServico)
-    {
-        _cadeiraServico = cadeiraServico;
-    }
+    private readonly CadeiraServico _cadeiraServico = cadeiraServico;
 
     [HttpGet]
     public async Task<ActionResult<List<CadeiraRespostaDto>>> ListarAsync(CancellationToken cancellationToken)
