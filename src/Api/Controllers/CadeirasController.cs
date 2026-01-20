@@ -11,8 +11,14 @@ public class CadeirasController(CadeiraServico cadeiraServico) : ControllerBase
     private readonly CadeiraServico _cadeiraServico = cadeiraServico;
 
     [HttpGet]
-    public async Task<ActionResult<List<CadeiraRespostaDto>>> ListarAsync(CancellationToken cancellationToken)
+    public async Task<ActionResult> ListarAsync([FromQuery] int? pageNumber, [FromQuery] int? pageSize, CancellationToken cancellationToken)
     {
+        if (pageNumber.HasValue || pageSize.HasValue)
+        {
+            var pag = await _cadeiraServico.ListarPaginadoAsync(pageNumber ?? 1, pageSize ?? 10, cancellationToken);
+            return Ok(pag);
+        }
+
         var resultado = await _cadeiraServico.ListarAsync(cancellationToken);
         return Ok(resultado);
     }

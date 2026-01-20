@@ -67,4 +67,27 @@ public class AlocacaoServico(IRepositorioCadeira repositorioCadeira, IRepositori
 
         return respostas;
     }
+
+    public async Task<PaginacaoRespostaDto<AlocacaoRespostaDto>> ListarPaginadoAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+        var (items, total) = await _repositorioAlocacao.ListarPaginadoAsync(pageNumber, pageSize, cancellationToken);
+
+        var dtos = items.Select(a => new AlocacaoRespostaDto
+        {
+            Id = a.Id,
+            CadeiraId = a.CadeiraId,
+            NumeroCadeira = a.Cadeira?.Numero ?? 0,
+            DataHoraInicio = a.DataHoraInicio,
+            DataHoraFim = a.DataHoraFim
+        }).ToList();
+
+        return new PaginacaoRespostaDto<AlocacaoRespostaDto>
+        {
+            Items = dtos,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = total,
+            TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+        };
+    }
 }

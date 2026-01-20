@@ -26,6 +26,38 @@ public class CadeiraServico(IRepositorioCadeira repositorioCadeira)
         };
     }
 
+    public async Task<PaginacaoRespostaDto<CadeiraRespostaDto>> ListarPaginadoAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        var cadeiras = (await _repositorioCadeira.ListarAsync(cancellationToken))
+            .OrderBy(c => c.Numero)
+            .ToList();
+
+        var total = cadeiras.Count;
+
+        var pageItems = cadeiras
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(cadeira => new CadeiraRespostaDto
+            {
+                Id = cadeira.Id,
+                Numero = cadeira.Numero,
+                Descricao = cadeira.Descricao
+            })
+            .ToList();
+
+        return new PaginacaoRespostaDto<CadeiraRespostaDto>
+        {
+            Items = pageItems,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = total,
+            TotalPages = (int)Math.Ceiling(total / (double)pageSize)
+        };
+    }
+
     public async Task<List<CadeiraRespostaDto>> ListarAsync(CancellationToken cancellationToken)
     {
         var cadeiras = await _repositorioCadeira.ListarAsync(cancellationToken);

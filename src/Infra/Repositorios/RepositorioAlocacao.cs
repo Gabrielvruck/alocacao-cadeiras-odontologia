@@ -25,4 +25,24 @@ public class RepositorioAlocacao(AplicacaoDbContext contexto) : IRepositorioAloc
         var mapa = carregadas.ToDictionary(a => a.Id);
         return [.. alocacoes.Select(a => mapa[a.Id])];
     }
+
+    public async Task<(List<Alocacao> Items, int Total)> ListarPaginadoAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+
+        var query = _contexto.Alocacoes
+            .AsNoTracking()
+            .Include(a => a.Cadeira)
+            .OrderBy(a => a.DataHoraInicio);
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
 }
